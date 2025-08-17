@@ -1,0 +1,204 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+.moon{
+  height: 8em;
+  padding: 1.5em;
+  position: absolute;
+  top: 12em;   
+  right: 25em; 
+  filter: blur(2px);
+ 
+  filter: drop-shadow(0 0 5px rgb(234, 1, 199));
+  filter: drop-shadow(0 0 10px rgb(255, 185, 212));
+  animation: moon-wiggle infinite 8s ease-in-out;
+}
+
+@keyframes moon-wiggle {
+  0%   { transform: translate(0, 0); }
+  20%  { transform: translate(10px, -8px); }
+  40%  { transform: translate(-8px, 8px); }
+  60%  { transform: translate(6px, 6px); }
+  80%  { transform: translate(-10px, -8px); }
+  100% { transform: translate(0, 0); }
+}
+
+
+.card {
+  padding: 1em;
+}
+
+.read-the-docs {
+  color: #ff0000;
+}
+body {
+  background-image: url('./images/cloud.png');
+  background-size: auto; /* or a specific size like 400px */
+  background-repeat: repeat;
+  background-position: top left;
+}
+
+
+.textBox{
+  width: 600px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 15px;
+  margin: 1em;
+
+}
+
+.textBox .dreamInput {
+  outline: none;
+  border: none;
+  margin: 0px;
+  padding: 0px;
+  font-family: Courier, monospace;
+  width: 500px;
+  overflow: hidden;
+  background-color: #FFF;
+  color: #222;
+  font-weight: normal;
+  font-size: 24px;
+  resize: none;
+  line-height: 42px;
+  padding-left: 100px;
+  padding-right: 80px;
+  padding-top: 4px;
+  padding-bottom: 2px;
+  background-image: url(https://static.tumblr.com/maopbtg/E9Bmgtoht/lines.png), url(https://static.tumblr.com/maopbtg/nBUmgtogx/paper.png);
+  background-repeat: repeat-y, repeat;
+  -webkit-border-radius: 12px;
+  border-radius: 12px;
+  -webkit-box-shadow: 0px 2px 14px #000;
+  box-shadow: 0px 2px 14px #00000098;
+  border-top: 1px solid #FFF;
+  border-bottom: 1px solid #FFF;
+  height: 50px; 
+  max-height: 250px;
+  overflow: auto;
+    /*transform: scale(1, 0.8);;  */
+}
+
+.textBox .dreamInput::-webkit-scrollbar {
+  width: 0px;
+}
+
+.textBox .dreamInput:focus {
+  outline: none;
+}
+
+.textBox .dreamInput:hover {
+  transition: all 0.2s ease-in-out;
+  cursor: text;
+}
+
+.dreamInput::placeholder {
+  color: #8c8c8c;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.dreamInput:focus::placeholder {
+  opacity: 0;
+}
+
+
+.textBox .btn-hover {
+    width: 120px;
+  
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+  
+    height: 47px;
+    text-align:center;
+    border: none;
+    background-size: 300% 100%;
+
+    border-radius: 50px;
+    -moz-transition: all .4s ease-in-out;
+    -o-transition: all .4s ease-in-out;
+    -webkit-transition: all .4s ease-in-out;
+    transition: all .4s ease-in-out;
+}
+
+.btn-hover:hover {
+    background-position: 100% 0;
+    -moz-transition: all .4s ease-in-out;
+    -o-transition: all .4s ease-in-out;
+    -webkit-transition: all .4s ease-in-out;
+    transition: all .4s ease-in-out;
+}
+
+.btn-hover:focus {
+    outline: none;
+}
+
+
+.btn-hover.color-10 {
+        background-image: linear-gradient(to right, #ed6ea0, #ec8c69, #f16490 , #fba13b);
+    box-shadow: 0 4px 15px 0 rgba(115, 47, 65, 0.75);
+}
+.btn-hover.color-11 {
+       background-image: linear-gradient(to right, #eb3941, #f15e64, #e14e53, #e2373f);  box-shadow: 0 5px 15px rgba(242, 97, 103, .4);
+}
+
+
+.result img{
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+
+  border-radius: 4px;
+}
+
+/* reserve space for the image so header never shifts */
+.result {
+  min-height: 300px;   
+  margin-top: 50px;   /* adjust to match your typical image height */
+  margin-bottom: -350px;       /* space from the button/text above */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.gen-counter {
+  position: fixed;
+  left: 19px;
+  bottom: 19px;
+  z-index: 9999;
+  min-width: 180px;
+
+  background: rgba(251, 237, 248, 0.871);
+  backdrop-filter: blur(2px);
+
+  border-radius: 12px;
+  box-shadow: 0 8px 14px rgba(0,0,0,0.15);
+  border: 1px solid rgba(0,0,0,0.08);
+
+  padding: 12px 14px;
+  text-align: left;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.gen-counter__title {
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+
+.gen-counter__value {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.gen-counter__reset {
+  font-size: 12px;
+  opacity: 0.8;
+}
