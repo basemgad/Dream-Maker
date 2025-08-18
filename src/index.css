@@ -13,7 +13,12 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-
+html, body {
+  height: 100%;
+  min-height: 100%;
+  overflow-x: hidden;          /* avoid horizontal scroll when scaled */
+  background: transparent;     /* let the fixed bg layer show through */
+}
 
 body {
   margin: 0;
@@ -21,6 +26,15 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+}
+
+/* Fixed, uncroppable background image that doesn't scale with content */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0; /* top/right/bottom/left: 0 */
+  z-index: -1;
+  background: url('./images/newbackground.png') center / cover no-repeat fixed;
 }
 
 h1 {
@@ -33,16 +47,14 @@ h1 {
   line-height: 1.1;
   text-align: center;
   filter: drop-shadow(-3px  3px 2px rgb(48, 10, 10));
-  
 }
 
 p {
   font-style: italic;
   color:#fff9f9;
- font-size: 1.5em;
+  font-size: 1.5em;
   filter: drop-shadow(-1px  1px 2px rgb(48, 10, 10));
 }
-
 
 @media (prefers-color-scheme: light) {
   :root {
@@ -54,5 +66,22 @@ p {
   }
   button {
     background-color: #f9f9f9;
+  }
+}
+
+/* ----- Laptop scaling fallback for browsers without `zoom` (e.g., Firefox) ----- */
+:root { --app-scale: 0.8; }
+
+@supports not (zoom: 1) {
+  @media (min-width: 1024px) and (max-width: 1536px) {
+    #root {
+      transform: scale(var(--app-scale));
+      transform-origin: top center;
+      width: calc(100% / var(--app-scale));       /* 125% when scale = 0.8 */
+      min-height: calc(100vh / var(--app-scale)); /* 125vh when scale = 0.8 */
+      /* Optional: keep centered horizontally if your layout needs it
+         margin-left: calc((100% - 100% / var(--app-scale)) / 2);
+      */
+    }
   }
 }
