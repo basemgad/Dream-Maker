@@ -5,6 +5,10 @@
   text-align: center;
 }
 .moon{
+  position: fixed;
+    z-index: 0;
+     pointer-events: none;            /* never intercept clicks */
+  user-select: none;
   height: 8em;
   padding: 1.5em;
   position: absolute;
@@ -16,7 +20,10 @@
   filter: drop-shadow(0 0 10px rgb(255, 185, 212));
   animation: moon-wiggle infinite 8s ease-in-out;
 }
-
+.app-content {
+  position: relative;
+  z-index: 1;
+}
 @keyframes moon-wiggle {
   0%   { transform: translate(0, 0); }
   20%  { transform: translate(10px, -8px); }

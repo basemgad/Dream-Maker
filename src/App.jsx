@@ -1,4 +1,3 @@
-// app.jsx
 import { useState, useRef, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import { generateImage, getStatus } from './runware';
@@ -58,24 +57,24 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Format countdown as mm:ss
- const countdownText = (() => {
-  if (!resetAt) return '';
-  const ms = Math.max(0, resetAt - now);
-  const totalSec = Math.floor(ms / 1000);
+  // Format countdown as h m s
+  const countdownText = (() => {
+    if (!resetAt) return '';
+    const ms = Math.max(0, resetAt - now);
+    const totalSec = Math.floor(ms / 1000);
 
-  const hours = Math.floor(totalSec / 3600);
-  const minutes = Math.floor((totalSec % 3600) / 60);
-  const seconds = totalSec % 60;
+    const hours = Math.floor(totalSec / 3600);
+    const minutes = Math.floor((totalSec % 3600) / 60);
+    const seconds = totalSec % 60;
 
-  // Build readable text: skip zero units unless they're in the middle
-  const parts = [];
-  if (hours > 0) parts.push(`${hours}h`);
-  if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
-  parts.push(`${seconds}s`);
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
+    parts.push(`${seconds}s`);
 
-  return parts.join(' ');
-})();
+    return parts.join(' ');
+  })();
+
   const onGenerate = async () => {
     if (!dream.trim()) return setError("Please describe your dream.");
     setLoading(true);
@@ -107,50 +106,55 @@ function App() {
 
   return (
     <>
-      <div><img src={moon} className="moon" alt="moon" /></div>
-      <h1>Dream Maker</h1>
-      <div className="card">
-        <p>Describe your dream in the text box and let us visualize it!</p>
-      </div>
+      {/* Moon stays behind and never blocks clicks */}
+      <img src={moon} className="moon" alt="moon" aria-hidden="true" />
 
-      <div className="textBox">
-        <textarea
-          ref={textareaRef}
-          className="dreamInput"
-          onChange={e => setDream(e.target.value)}
-          placeholder="Enter Your Dream"
-          value={dream}
-        />
-        <button onClick={onGenerate} disabled={loading} className="btn-hover color-10">
-          {loading ? "Generating..." : "Generate"}
-        </button>
-      </div>
-
-      {error && <p className="error">{error}</p>}
-
-      {imgUrl && (
-        <div className="result">
-          <img src={imgUrl} alt="Generated dream" />
+      {/* Everything else above the moon */}
+      <div className="app-content">
+        <h1>Dream Maker</h1>
+        <div className="card">
+          <p>Describe your dream in the text box and let us visualize it!</p>
         </div>
-      )}
 
-      {/* Sticky generations counter (bottom-left) */}
-      <div className="gen-counter">
-        {maxAttempts != null && remaining != null ? (
-          <>
-            <div className="gen-counter__title">Generations Left</div>
-            <div className="gen-counter__value">
-              {remaining} / {maxAttempts}
-            </div>
-            {resetAt ? (
-              <div className="gen-counter__reset">
-                Resets in {countdownText}
-              </div>
-            ) : null}
-          </>
-        ) : (
-          <div className="gen-counter__title">Checking status…</div>
+        <div className="textBox">
+          <textarea
+            ref={textareaRef}
+            className="dreamInput"
+            onChange={e => setDream(e.target.value)}
+            placeholder="Enter Your Dream"
+            value={dream}
+          />
+          <button onClick={onGenerate} disabled={loading} className="btn-hover color-10">
+            {loading ? "Generating..." : "Generate"}
+          </button>
+        </div>
+
+        {error && <p className="error">{error}</p>}
+
+        {imgUrl && (
+          <div className="result">
+            <img src={imgUrl} alt="Generated dream" />
+          </div>
         )}
+
+        {/* Sticky generations counter (bottom-left) */}
+        <div className="gen-counter">
+          {maxAttempts != null && remaining != null ? (
+            <>
+              <div className="gen-counter__title">Generations Left</div>
+              <div className="gen-counter__value">
+                {remaining} / {maxAttempts}
+              </div>
+              {resetAt ? (
+                <div className="gen-counter__reset">
+                  Resets in {countdownText}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <div className="gen-counter__title">Checking status…</div>
+          )}
+        </div>
       </div>
     </>
   );
