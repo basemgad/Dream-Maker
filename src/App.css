@@ -214,3 +214,23 @@ body {
   fill: #000 !important;
   stroke: #000 !important;
 }
+/* Scale app to 0.8x on typical laptop widths (1024–1536px) */
+@media (min-width: 1024px) and (max-width: 1536px) {
+  /* Fast path for Chrome/Edge/Safari */
+  body { 
+    zoom: 0.8;
+  }
+}
+
+/* Fallback for browsers that don't support zoom (e.g., Firefox) */
+@supports not (zoom: 1) {
+  @media (min-width: 1024px) and (max-width: 1536px) {
+    /* Scale the React mount node; adjust width so layout fills screen */
+    #root {
+      transform: scale(0.8);
+      transform-origin: top left;
+      width: 125%;   /* 1 / 0.8 = 1.25 */
+      min-height: 125vh;
+    }
+  }
+}
