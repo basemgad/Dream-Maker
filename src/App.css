@@ -227,6 +227,9 @@ body {
   body { 
     zoom: 0.8;
   }
+  .moon{
+     right: 26em
+  }
 }
 
 /* Fallback for browsers that don't support zoom (e.g., Firefox) */
