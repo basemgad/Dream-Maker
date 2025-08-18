@@ -202,3 +202,15 @@ body {
   font-size: 12px;
   opacity: 0.8;
 }
+
+/* Make all text/icons inside the generations counter black */
+.gen-counter,
+.gen-counter * {
+  color: #000 !important;
+}
+
+.gen-counter svg,
+.gen-counter svg * {
+  fill: #000 !important;
+  stroke: #000 !important;
+}
