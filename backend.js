@@ -4,26 +4,31 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { v4 as uuidv4 } from 'uuid';
 import sqlite3 from 'sqlite3';
-import fetch from 'node-fetch'; // if using Node 18+ you can also use the global fetch
+import fetch from 'node-fetch'; // Node 18+ also has global fetch, but this works fine
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors()); // you can lock this down later to your frontend domain(s)
 app.use(express.json());
-
 
 // ---- Config ----
 const MAX_ATTEMPTS = 20;
 const COOLDOWN_PERIOD = 24 * 60 * 60 * 1000; // 24 hours
+const RUNWARE_KEY = process.env.RUNWARE_API_KEY || process.env.VITE_RUNWARE_API_KEY;
 
+// ---- SQLite init (use absolute path; Render runs at /opt/render/project/src) ----
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DB_PATH = path.join(__dirname, 'user_attempts.db');
 
-// ---- SQLite init ----
-const db = new sqlite3.Database('./user_attempts.db', (err) => {
+const db = new sqlite3.Database(DB_PATH, (err) => {
   if (err) {
-    console.error('Error opening SQLite database:', err);
+    console.error('Error opening SQLite database:', err, 'at', DB_PATH);
   } else {
-    console.log('Connected to SQLite database');
+    console.log('Connected to SQLite database at', DB_PATH);
     db.run(`CREATE TABLE IF NOT EXISTS attempts (
       userId TEXT PRIMARY KEY,
       attempts INTEGER,
@@ -117,22 +122,24 @@ app.get('/api/status', async (req, res) => {
 // Main generate endpoint
 app.post('/api/generate', async (req, res) => {
   try {
-    console.log('Received request body:', req.body);
     const { prompt, userId } = req.body;
 
     if (!prompt || !userId) {
       return res.status(400).json({ error: 'Missing prompt or userId in request body.' });
     }
 
+    if (!RUNWARE_KEY) {
+      return res.status(500).json({ error: 'Server misconfiguration: missing RUNWARE_API_KEY.' });
+    }
+
     const allowed = await canGenerate(userId);
-    console.log('Can generate result:', allowed);
 
     if (!allowed) {
       const status = await getStatus(userId);
       return res.status(403).json({
-    error: 'You have reached your limit. Please try again after 24 hours.',
-    maxAttempts: MAX_ATTEMPTS,
-    ...status
+        error: 'You have reached your limit. Please try again after 24 hours.',
+        maxAttempts: MAX_ATTEMPTS,
+        ...status
       });
     }
 
@@ -152,20 +159,16 @@ app.post('/api/generate', async (req, res) => {
       numberResults: 1
     }];
 
-    console.log('Sending request to Runware API:', JSON.stringify(requestBody, null, 2));
-
     const rwRes = await fetch('https://api.runware.ai/v1/tasks', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.RUNWARE_API_KEY}`
+        'Authorization': `Bearer ${RUNWARE_KEY}`
       },
       body: JSON.stringify(requestBody)
     });
 
     const rwText = await rwRes.text();
-    console.log('Runware API Response:', rwText);
-
     if (!rwRes.ok) {
       return res.status(500).json({
         error: 'Runware API request failed',
@@ -198,11 +201,7 @@ app.post('/api/generate', async (req, res) => {
 });
 
 // ---- Start server ----
-const PORT = 3000;
+const PORT = process.env.PORT || 3000; // define before use
 app.listen(PORT, () => {
-  console.log(`Proxy server running at http://localhost:${PORT}`);
-  const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server on ${PORT}`));
-
-
+  console.log(`Proxy server running on port ${PORT}`);
 });
