@@ -1,4 +1,5 @@
 :root {
+  @import url('https://fonts.googleapis.com/css2?family=Merienda:wght@300..900&family=Petit+Formal+Script&display=swap');
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -38,6 +39,8 @@ body::before {
 }
 
 h1 {
+    font-family: "Merienda", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-weight: 800;
   color:#fff9f9;
   font-size: 5em;
   padding-top: 0%;
