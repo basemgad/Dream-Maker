@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+// App.jsx
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Cookies from 'js-cookie';
 import { generateImage, getStatus } from './runware';
 import moon from './images/moon.png';
@@ -6,12 +7,16 @@ import './App.css';
 import { v4 as uuidv4 } from 'uuid';
 
 function App() {
-  const [dream, setDream] = useState("");
-  const [imgUrl, setImgUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  // Set page title
+  useEffect(() => { document.title = 'Dream Maker'; }, []);
 
-  // NEW: status state for the sticky counter
+  // UI state
+  const [dream, setDream] = useState('');
+  const [imgUrl, setImgUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Sticky counter state
   const [remaining, setRemaining] = useState(null);
   const [maxAttempts, setMaxAttempts] = useState(null);
   const [resetAt, setResetAt] = useState(null); // epoch ms when cooldown ends
@@ -47,7 +52,7 @@ function App() {
       setMaxAttempts(s.maxAttempts);
       setResetAt(s.resetAt || null);
     } catch (e) {
-      console.error("Failed to get status:", e);
+      console.error('Failed to get status:', e);
     }
   };
 
@@ -75,11 +80,12 @@ function App() {
     return parts.join(' ');
   })();
 
+  // Generate handler
   const onGenerate = async () => {
-    if (!dream.trim()) return setError("Please describe your dream.");
+    if (!dream.trim()) return setError('Please describe your dream.');
     setLoading(true);
-    setError("");
-    setImgUrl("");
+    setError('');
+    setImgUrl('');
 
     try {
       const data = await generateImage(dream, userId);
@@ -89,8 +95,11 @@ function App() {
       if (typeof data.maxAttempts === 'number') setMaxAttempts(data.maxAttempts);
       if (typeof data.resetAt === 'number') setResetAt(data.resetAt);
     } catch (err) {
-      console.error("Error in image generation:", err);
-      const msg = err?.payload?.error || err.message || "You have reached your daily limit. Please try again after the cooldown.";
+      console.error('Error in image generation:', err);
+      const msg =
+        err?.payload?.error ||
+        err.message ||
+        'You have reached your daily limit. Please try again after the cooldown.';
       setError(msg);
 
       // Attempt to read status from error payload too
@@ -104,6 +113,32 @@ function App() {
     }
   };
 
+  // Enter-to-generate (Shift+Enter = newline)
+  const handleKeyDown = useCallback(
+    (e) => {
+      const isEnter = e.key === 'Enter' || e.code === 'Enter';
+      const inTextarea = e.target === textareaRef.current;
+      if (inTextarea && isEnter && !e.shiftKey) {
+        e.preventDefault();
+        if (!loading && dream.trim()) onGenerate();
+      }
+    },
+    [loading, dream]
+  );
+
+  // Document-level fallback (in case the textarea swallows the event)
+  useEffect(() => {
+    const onDocKeyDown = (e) => {
+      const isEnter = e.key === 'Enter' || e.code === 'Enter';
+      if (document.activeElement === textareaRef.current && isEnter && !e.shiftKey) {
+        e.preventDefault();
+        if (!loading && dream.trim()) onGenerate();
+      }
+    };
+    document.addEventListener('keydown', onDocKeyDown);
+    return () => document.removeEventListener('keydown', onDocKeyDown);
+  }, [loading, dream]);
+
   return (
     <>
       {/* Moon stays behind and never blocks clicks */}
@@ -112,6 +147,7 @@ function App() {
       {/* Everything else above the moon */}
       <div className="app-content">
         <h1>Dream Maker</h1>
+
         <div className="card">
           <p>Describe your dream in the text box and let us visualize it!</p>
         </div>
@@ -120,12 +156,13 @@ function App() {
           <textarea
             ref={textareaRef}
             className="dreamInput"
-            onChange={e => setDream(e.target.value)}
+            onChange={(e) => setDream(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Enter Your Dream"
             value={dream}
           />
           <button onClick={onGenerate} disabled={loading} className="btn-hover color-10">
-            {loading ? "Generating..." : "Generate"}
+            {loading ? 'Generating...' : 'Generate'}
           </button>
         </div>
 
@@ -145,11 +182,7 @@ function App() {
               <div className="gen-counter__value">
                 {remaining} / {maxAttempts}
               </div>
-              {resetAt ? (
-                <div className="gen-counter__reset">
-                  Resets in {countdownText}
-                </div>
-              ) : null}
+              {resetAt ? <div className="gen-counter__reset">Resets in {countdownText}</div> : null}
             </>
           ) : (
             <div className="gen-counter__title">Checking status…</div>
