@@ -152,7 +152,7 @@ app.post('/api/generate', async (req, res) => {
       taskType: 'imageInference',
       taskUUID,
       includeCost: true,
-      model: 'civitai:7240@119057',
+      model: 'civitai:4384@128713',
       positivePrompt: prompt,
       width: 512,
       height: 512,
