@@ -137,7 +137,7 @@ app.post('/api/generate', async (req, res) => {
     if (!allowed) {
       const status = await getStatus(userId);
       return res.status(403).json({
-        error: 'You have reached your limit. Please try again after 24 hours.',
+        error: 'You have reached your limit. Please try again after the timer is finished.',
         maxAttempts: MAX_ATTEMPTS,
         ...status
       });
@@ -152,7 +152,7 @@ app.post('/api/generate', async (req, res) => {
       taskType: 'imageInference',
       taskUUID,
       includeCost: true,
-      model: 'civitai:36520@76907',
+      model: 'civitai:7240@119057',
       positivePrompt: prompt,
       width: 512,
       height: 512,
