@@ -224,6 +224,76 @@ body {
   fill: #000 !important;
   stroke: #000 !important;
 }
+
+.result-image {
+  width: 512px;
+  height: 512px;
+  display: block;
+  object-fit: cover;
+  cursor: zoom-in;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  transition: transform 0.2s ease;
+}
+
+.result-image:hover {
+  transform: scale(1.015);
+}
+
+.image-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  background: rgba(10, 10, 20, 0);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.35s ease,
+    background-color 0.35s ease,
+    backdrop-filter 0.35s ease,
+    -webkit-backdrop-filter 0.35s ease;
+}
+
+.image-modal.open {
+  background: rgba(10, 10, 20, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.image-modal__content {
+  transform: scale(0.94);
+  opacity: 0;
+  transition:
+    transform 0.35s ease,
+    opacity 0.35s ease;
+}
+
+.image-modal.open .image-modal__content {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.image-modal__img {
+  display: block;
+  width: min(1024px, 90vw);
+  height: auto;
+  max-height: 90vh;
+  border-radius: 10px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
 /* Scale app to 0.8x on typical laptop widths (1024–1536px) */
 @media (min-width: 1024px) and (max-width: 1536px) {
   /* Fast path for Chrome/Edge/Safari */
