@@ -7,30 +7,26 @@ import './App.css';
 import { v4 as uuidv4 } from 'uuid';
 
 function App() {
-  // Set page title
   useEffect(() => { document.title = 'Dream Maker'; }, []);
 
-  // UI state
   const [dream, setDream] = useState('');
   const [imgUrl, setImgUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  // Sticky counter state
   const [remaining, setRemaining] = useState(null);
   const [maxAttempts, setMaxAttempts] = useState(null);
-  const [resetAt, setResetAt] = useState(null); // epoch ms when cooldown ends
-  const [now, setNow] = useState(Date.now());   // tick every second for countdown
+  const [resetAt, setResetAt] = useState(null);
+  const [now, setNow] = useState(Date.now());
 
   const textareaRef = useRef(null);
 
-  // Get userId from cookies or create a new one if it doesn't exist
   const userId = Cookies.get('userId') || uuidv4();
   if (!Cookies.get('userId')) {
-    Cookies.set('userId', userId, { expires: 365 }); // Store for 1 year
+    Cookies.set('userId', userId, { expires: 365 });
   }
 
-  // Auto-grow textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -38,13 +34,11 @@ function App() {
     }
   }, [dream]);
 
-  // Tick every second to update the countdown text
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  // Fetch status from backend
   const refreshStatus = async () => {
     try {
       const s = await getStatus(userId);
@@ -56,13 +50,28 @@ function App() {
     }
   };
 
-  // Load status on mount
   useEffect(() => {
     refreshStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Format countdown as h m s
+  useEffect(() => {
+    if (!isPreviewOpen) return;
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setIsPreviewOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    document.body.classList.add('modal-open');
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.classList.remove('modal-open');
+    };
+  }, [isPreviewOpen]);
+
   const countdownText = (() => {
     if (!resetAt) return '';
     const ms = Math.max(0, resetAt - now);
@@ -80,16 +89,15 @@ function App() {
     return parts.join(' ');
   })();
 
-  // Generate handler
   const onGenerate = async () => {
     if (!dream.trim()) return setError('Please describe your dream.');
     setLoading(true);
     setError('');
     setImgUrl('');
+    setIsPreviewOpen(false);
 
     try {
       const data = await generateImage(dream, userId);
-      // data: { imageURL, remainingAttempts, resetAt, maxAttempts, ... }
       setImgUrl(data.imageURL);
       if (typeof data.remainingAttempts === 'number') setRemaining(data.remainingAttempts);
       if (typeof data.maxAttempts === 'number') setMaxAttempts(data.maxAttempts);
@@ -102,18 +110,15 @@ function App() {
         'You have reached your daily limit. Please try again after the cooldown.';
       setError(msg);
 
-      // Attempt to read status from error payload too
       if (typeof err?.payload?.remainingAttempts === 'number') setRemaining(err.payload.remainingAttempts);
       if (typeof err?.payload?.maxAttempts === 'number') setMaxAttempts(err.payload.maxAttempts);
       if (typeof err?.payload?.resetAt === 'number') setResetAt(err.payload.resetAt);
     } finally {
       setLoading(false);
-      // Always sync with server after any attempt
       refreshStatus();
     }
   };
 
-  // Enter-to-generate (Shift+Enter = newline)
   const handleKeyDown = useCallback(
     (e) => {
       const isEnter = e.key === 'Enter' || e.code === 'Enter';
@@ -126,7 +131,6 @@ function App() {
     [loading, dream]
   );
 
-  // Document-level fallback (in case the textarea swallows the event)
   useEffect(() => {
     const onDocKeyDown = (e) => {
       const isEnter = e.key === 'Enter' || e.code === 'Enter';
@@ -141,10 +145,8 @@ function App() {
 
   return (
     <>
-      {/* Moon stays behind and never blocks clicks */}
       <img src={moon} className="moon" alt="moon" aria-hidden="true" />
 
-      {/* Everything else above the moon */}
       <div className="app-content">
         <h1>Dream Maker</h1>
 
@@ -170,11 +172,15 @@ function App() {
 
         {imgUrl && (
           <div className="result">
-            <img src={imgUrl} alt="Generated dream" />
+            <img
+              src={imgUrl}
+              alt="Generated dream"
+              className="result-image"
+              onClick={() => setIsPreviewOpen(true)}
+            />
           </div>
         )}
 
-        {/* Sticky generations counter (bottom-left) */}
         <div className="gen-counter">
           {maxAttempts != null && remaining != null ? (
             <>
@@ -186,6 +192,25 @@ function App() {
             </>
           ) : (
             <div className="gen-counter__title">Checking status…</div>
+          )}
+        </div>
+      </div>
+
+      <div
+        className={`image-modal ${isPreviewOpen ? 'open' : ''}`}
+        onClick={() => setIsPreviewOpen(false)}
+        aria-hidden={!isPreviewOpen}
+      >
+        <div
+          className="image-modal__content"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {imgUrl && (
+            <img
+              src={imgUrl}
+              alt="Generated dream enlarged"
+              className="image-modal__img"
+            />
           )}
         </div>
       </div>
