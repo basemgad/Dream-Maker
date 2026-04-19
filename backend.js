@@ -159,35 +159,43 @@ app.post('/api/generate', async (req, res) => {
       numberResults: 1
     }];
 
-    const rwRes = await fetch('https://api.runware.ai/v1/tasks', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RUNWARE_KEY}`
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    const rwText = await rwRes.text();
-    if (!rwRes.ok) {
-      return res.status(500).json({
-        error: 'Runware API request failed',
-        details: rwText,
-        maxAttempts: MAX_ATTEMPTS,
-        ...statusAfterInc
+      const rwRes = await fetch('https://api.runware.ai/v1/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${RUNWARE_KEY}`
+        },
+        body: JSON.stringify(requestBody)
       });
-    }
-
-    const data = JSON.parse(rwText);
-    const imageURL = data?.data?.[0]?.imageURL;
-    if (!imageURL) {
-      return res.status(500).json({
-        error: 'No imageURL in response',
-        details: data,
-        maxAttempts: MAX_ATTEMPTS,
-        ...statusAfterInc
-      });
-    }
+      
+      const rwText = await rwRes.text();
+      console.log('Runware status:', rwRes.status);
+      console.log('Runware body:', rwText);
+      
+      let parsed;
+      try {
+        parsed = JSON.parse(rwText);
+      } catch {
+        return res.status(rwRes.status || 500).json({
+          error: 'Runware returned non-JSON',
+          details: rwText
+        });
+      }
+      
+      if (!rwRes.ok || parsed.errors?.length || parsed.error) {
+        return res.status(rwRes.status || 400).json({
+          error: 'Runware generation failed',
+          details: parsed.errors || parsed.error || parsed
+        });
+      }
+      
+      const imageURL = parsed?.data?.[0]?.imageURL;
+      if (!imageURL) {
+        return res.status(500).json({
+          error: 'Runware returned success but no imageURL',
+          details: parsed
+        });
+      }   
 
     return res.json({
       imageURL,
