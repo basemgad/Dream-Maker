@@ -85,7 +85,21 @@ p {
 
 @media (min-width: 1440px) {
   h1 {
+    font-size: 6rem;
+
+  }
+  p{
+    font-size: 1.65rem;
+  }
+}
+
+@media (min-width: 1440px) and (max-height: 1100px) {
+    h1 {
     font-size: 5rem;
+
+  }
+    p{
+    font-size: 1.6rem;
   }
 }
 
