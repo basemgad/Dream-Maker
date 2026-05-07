@@ -165,18 +165,20 @@
 }
 
 .result {
+  --result-size: min(38rem, calc(100vw - 2rem));
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   width: 100%;
-  min-height: min(32rem, calc(100vw - 2rem));
+  min-height: var(--result-size);
   margin: 1.5rem auto 0;
 }
 
 .result img,
 .result-image {
   display: block;
-  width: min(100%, 32rem);
+  width: var(--result-size);
+  max-width: 100%;
   height: auto;
   aspect-ratio: 1 / 1;
   object-fit: cover;
@@ -332,7 +334,8 @@ body.modal-open {
   }
 
   .result {
-    min-height: min(24rem, calc(100vw - 2rem));
+    --result-size: min(24rem, calc(100vw - 2rem));
+    justify-content: center;
     margin-top: 1.5rem;
   }
 
@@ -340,6 +343,22 @@ body.modal-open {
     position: static;
     width: min(100%, 18rem);
     margin: 1.5rem auto 0;
+  }
+}
+
+@media (min-width: 1440px) and (max-height: 1100px) {
+  .app-content {
+    gap: 0.5rem;
+    padding-bottom: 2rem;
+  }
+
+  .textBox {
+    margin-top: 0.75rem;
+  }
+
+  .result {
+    --result-size: min(30rem, calc(100dvh - var(--hud-top-spacing) - 24rem), calc(100vw - 2rem));
+    margin-top: 1rem;
   }
 }
 
