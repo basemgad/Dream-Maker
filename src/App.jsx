@@ -9,6 +9,8 @@ import { v4 as uuidv4 } from 'uuid';
 function App() {
   useEffect(() => { document.title = 'Dream Maker'; }, []);
 
+  const showPlaceholder = new URLSearchParams(window.location.search).get('placeholder') === 'true';
+
   const [dream, setDream] = useState('');
   const [imgUrl, setImgUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -178,6 +180,9 @@ function App() {
               className="result-image"
               onClick={() => setIsPreviewOpen(true)}
             />
+          )}
+          {!imgUrl && showPlaceholder && (
+            <div className="result-image result-placeholder" aria-label="Generated image placeholder" />
           )}
         </div>
 
