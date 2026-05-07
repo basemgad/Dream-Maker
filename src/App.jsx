@@ -170,16 +170,16 @@ function App() {
 
         {error && <p className="error">{error}</p>}
 
-        {imgUrl && (
-          <div className="result">
+        <div className="result">
+          {imgUrl && (
             <img
               src={imgUrl}
               alt="Generated dream"
               className="result-image"
               onClick={() => setIsPreviewOpen(true)}
             />
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="gen-counter">
           {maxAttempts != null && remaining != null ? (
