@@ -18,6 +18,7 @@ app.use(express.json());
 const MAX_ATTEMPTS = 20;
 const COOLDOWN_PERIOD = 24 * 60 * 60 * 1000; // 24 hours
 const RUNWARE_KEY = process.env.RUNWARE_API_KEY || process.env.VITE_RUNWARE_API_KEY;
+const FORCE_PLACEHOLDER_IMAGES = process.env.USE_PLACEHOLDER_IMAGES === 'true';
 
 // ---- SQLite init (use absolute path; Render runs at /opt/render/project/src) ----
 const __filename = fileURLToPath(import.meta.url);
@@ -29,15 +30,62 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
     console.error('Error opening SQLite database:', err, 'at', DB_PATH);
   } else {
     console.log('Connected to SQLite database at', DB_PATH);
-    db.run(`CREATE TABLE IF NOT EXISTS attempts (
-      userId TEXT PRIMARY KEY,
-      attempts INTEGER,
-      lastAttempt INTEGER
-    )`);
+    db.serialize(() => {
+      db.run(`CREATE TABLE IF NOT EXISTS attempts (
+        userId TEXT PRIMARY KEY,
+        attempts INTEGER,
+        lastAttempt INTEGER
+      )`);
+
+      db.run(`CREATE TABLE IF NOT EXISTS gallery_images (
+        id TEXT PRIMARY KEY,
+        userId TEXT NOT NULL,
+        prompt TEXT NOT NULL,
+        imageURL TEXT NOT NULL,
+        createdAt INTEGER NOT NULL,
+        UNIQUE(userId, imageURL)
+      )`);
+
+      db.run(`CREATE INDEX IF NOT EXISTS idx_gallery_images_user_created
+        ON gallery_images (userId, createdAt DESC)`);
+    });
   }
 });
 
 // ---- Helpers ----
+const isHttpUrl = (value) => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const isLocalRequest = (req) => {
+  const host = req.hostname;
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+};
+
+const shouldUsePlaceholderImages = (req) => (
+  FORCE_PLACEHOLDER_IMAGES || (!RUNWARE_KEY && isLocalRequest(req))
+);
+
+const PLACEHOLDER_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#29476c" />
+      <stop offset="100%" stop-color="#d98ca6" />
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)" />
+  <circle cx="768" cy="228" r="108" fill="#fff8dc" opacity="0.95" />
+  <path d="M0 720 C210 620 340 810 520 700 C680 600 800 720 1024 630 L1024 1024 L0 1024 Z" fill="#131a2c" opacity="0.68" />
+  <text x="512" y="512" text-anchor="middle" fill="#fff9f9" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="700">Local Placeholder</text>
+  <text x="512" y="585" text-anchor="middle" fill="#fff9f9" font-family="Arial, Helvetica, sans-serif" font-size="28">Generated image preview</text>
+</svg>`;
+
 const canGenerate = (userId) => new Promise((resolve, reject) => {
   const q = `SELECT attempts, lastAttempt FROM attempts WHERE userId = ?`;
   db.get(q, [userId], (err, row) => {
@@ -104,6 +152,63 @@ const updateAttemptsAndGetStatus = (userId) => new Promise((resolve, reject) => 
   });
 });
 
+const getGalleryImages = (userId) => new Promise((resolve, reject) => {
+  db.all(
+    `SELECT id, prompt, imageURL, createdAt
+     FROM gallery_images
+     WHERE userId = ?
+     ORDER BY createdAt DESC`,
+    [userId],
+    (err, rows) => {
+      if (err) return reject(err);
+      resolve(rows || []);
+    }
+  );
+});
+
+const saveGalleryImage = ({ userId, prompt, imageURL }) => new Promise((resolve, reject) => {
+  db.get(
+    `SELECT id, prompt, imageURL, createdAt
+     FROM gallery_images
+     WHERE userId = ? AND imageURL = ?`,
+    [userId, imageURL],
+    (findErr, existing) => {
+      if (findErr) return reject(findErr);
+      if (existing) return resolve(existing);
+
+      const image = {
+        id: uuidv4(),
+        userId,
+        prompt,
+        imageURL,
+        createdAt: Date.now()
+      };
+
+      db.run(
+        `INSERT INTO gallery_images (id, userId, prompt, imageURL, createdAt)
+         VALUES (?, ?, ?, ?, ?)`,
+        [image.id, image.userId, image.prompt, image.imageURL, image.createdAt],
+        (insertErr) => {
+          if (insertErr) return reject(insertErr);
+          const { userId: _userId, ...publicImage } = image;
+          resolve(publicImage);
+        }
+      );
+    }
+  );
+});
+
+const deleteGalleryImage = ({ userId, imageId }) => new Promise((resolve, reject) => {
+  db.run(
+    `DELETE FROM gallery_images WHERE id = ? AND userId = ?`,
+    [imageId, userId],
+    function onDelete(err) {
+      if (err) return reject(err);
+      resolve(this.changes > 0);
+    }
+  );
+});
+
 // ---- Routes ----
 
 // Status endpoint for the UI counter
@@ -119,6 +224,70 @@ app.get('/api/status', async (req, res) => {
   }
 });
 
+app.get('/api/gallery', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'Missing userId' });
+
+    const images = await getGalleryImages(userId);
+    return res.json({ images });
+  } catch (e) {
+    console.error('GET /api/gallery error:', e);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/gallery', async (req, res) => {
+  try {
+    const { userId, prompt, imageURL } = req.body;
+
+    if (!userId || !prompt || !imageURL) {
+      return res.status(400).json({ error: 'Missing userId, prompt, or imageURL in request body.' });
+    }
+
+    if (!isHttpUrl(imageURL)) {
+      return res.status(400).json({ error: 'imageURL must be a valid http(s) URL.' });
+    }
+
+    const image = await saveGalleryImage({
+      userId,
+      prompt: String(prompt).trim().slice(0, 2000),
+      imageURL
+    });
+
+    return res.status(201).json({ image });
+  } catch (e) {
+    console.error('POST /api/gallery error:', e);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/api/gallery/:imageId', async (req, res) => {
+  try {
+    const { imageId } = req.params;
+    const { userId } = req.query;
+
+    if (!userId || !imageId) {
+      return res.status(400).json({ error: 'Missing userId or imageId.' });
+    }
+
+    const deleted = await deleteGalleryImage({ userId, imageId });
+    if (!deleted) return res.status(404).json({ error: 'Gallery image not found.' });
+
+    return res.json({ deleted: true, imageId });
+  } catch (e) {
+    console.error('DELETE /api/gallery/:imageId error:', e);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/placeholder-image/:imageId.svg', (_req, res) => {
+  res
+    .type('image/svg+xml')
+    .set('Cache-Control', 'no-store')
+    .send(PLACEHOLDER_SVG);
+});
+
 // Main generate endpoint
 app.post('/api/generate', async (req, res) => {
   try {
@@ -128,7 +297,9 @@ app.post('/api/generate', async (req, res) => {
       return res.status(400).json({ error: 'Missing prompt or userId in request body.' });
     }
 
-    if (!RUNWARE_KEY) {
+    const usePlaceholderImage = shouldUsePlaceholderImages(req);
+
+    if (!RUNWARE_KEY && !usePlaceholderImage) {
       return res.status(500).json({ error: 'Server misconfiguration: missing RUNWARE_API_KEY.' });
     }
 
@@ -148,6 +319,17 @@ app.post('/api/generate', async (req, res) => {
 
     // Build Runware request
     const taskUUID = uuidv4();
+
+    if (usePlaceholderImage) {
+      const imageURL = `${req.protocol}://${req.get('host')}/api/placeholder-image/${taskUUID}.svg`;
+      return res.json({
+        imageURL,
+        mock: true,
+        maxAttempts: MAX_ATTEMPTS,
+        ...statusAfterInc
+      });
+    }
+
     const requestBody = [{
       taskType: 'imageInference',
       taskUUID,
